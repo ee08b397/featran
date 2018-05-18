@@ -27,8 +27,8 @@ import scala.reflect.ClassTag
  * @tparam M input collection type, e.g. `Array`, List
  * @tparam T input record type to extract features from
  */
-class FeatureExtractor[M[+ _]: CollectionType, T] private[featran] (
-  private val fs: M[FeatureSet[T]],
+class FeatureExtractor[M[_]: CollectionType, T] private[featran] (
+  private val fs: M[_ <: FeatureSet[T]],
   @transient private val input: M[T],
   @transient private val settings: Option[M[String]])
     extends Serializable {
@@ -116,8 +116,9 @@ class RecordExtractor[T, F: FeatureBuilder: ClassTag] private[featran] (fs: Feat
   private implicit val iteratorCollectionType: CollectionType[Iterator] =
     new CollectionType[Iterator] {
       override def map[A, B: ClassTag](ma: Iterator[A], f: A => B): Iterator[B] = ma.map(f)
-      override def flatMap[A, B: ClassTag](ma: Iterator[A], f: A => Iterator[B]) = ma.flatMap(f)
-      override def pure[A](a: A): Iterator[A] = new Iterator[A]()
+      override def flatMap[A, B: ClassTag](ma: Iterator[A], f: A => Iterator[B]): Iterator[B] =
+        ma.flatMap(f)
+      override def pure[A: ClassTag](a: A): Iterator[A] = Iterator[A]()
       override def reduce[A](ma: Iterator[A], f: (A, A) => A): Iterator[A] = ???
       override def cross[A, B: ClassTag](ma: Iterator[A], mb: Iterator[B]): Iterator[(A, B)] = {
         val b = mb.next()
@@ -133,7 +134,9 @@ class RecordExtractor[T, F: FeatureBuilder: ClassTag] private[featran] (fs: Feat
     override def initialValue(): State = {
       val input: PipeIterator = new PipeIterator
       val extractor: FeatureExtractor[Iterator, T] =
-        new FeatureExtractor[Iterator, T](fs, input, Some(Iterator.continually(settings)))
+        new FeatureExtractor[Iterator, T](Iterator.continually(fs),
+                                          input,
+                                          Some(Iterator.continually(settings)))
       val output: Iterator[FeatureResult[F, T]] = extractor.featureResults
 
       State(input, extractor, output)

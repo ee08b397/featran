@@ -146,15 +146,15 @@ class FeatureSpec[T] private[featran] (private[featran] val features: Array[Feat
     val dt: CollectionType[M] = implicitly[CollectionType[M]]
     import dt.Ops._
 
-    val featureSet = settings.map { s =>
-      import io.circe.generic.auto._
-      import io.circe.parser._
-      val settingsJson = decode[Seq[Settings]](s).right.get
-      val filteredFeatures = features.filter { f =>
-        settingsJson.exists(x => x.name == f.transformer.name)
-      }
-      new FeatureSet(filteredFeatures, crossings)
-    }
+//    val featureSet = settings.map { s =>
+//      import io.circe.generic.auto._
+//      import io.circe.parser._
+//      val settingsJson = decode[Seq[Settings]](s).right.get
+//      val filteredFeatures = features.filter { f =>
+//        settingsJson.exists(x => x.name == f.transformer.name)
+//      }
+    val featureSet = dt.pure(new FeatureSet(features, crossings))
+//    }
 
     new FeatureExtractor[M, T](featureSet, input, Some(settings))
   }
